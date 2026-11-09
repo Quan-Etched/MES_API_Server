@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="eyebrow">Etched · Manufacturing Test</div>
+  <h1>Inventec MES ⇄ Etched L6 Integration Sandbox</h1>
+  <p>Interface verification between Inventec (IEC) MES and the Etched L6 manufacturing database.
+     Upload Excel or JSON, check that every column matches an Etched L6 field, preview the rows, then submit.
+     Data received from Inventec is stored in separate <code>iec_*</code> staging tables and never written
+     directly into the Etched core tables.</p>
+  <div class="big-actions">
+    <a class="big-btn iec" href="{{ url_for('page_import') }}">
+      <span class="t">Inventec MES Import →</span>
+      <span class="d">IEC → Etched · work orders, units, genealogy, WIP, station history, test results, QC, rework, material lots</span>
+    </a>
+    <a class="big-btn etched" href="{{ url_for('page_etched') }}">
+      <span class="t">Etched Test Results Upload →</span>
+      <span class="d">Etched → IEC · station results, measurements, identities / provisioning</span>
+    </a>
+  </div>
+</section>
+
+<div class="grid3">
+  <div class="panel">
+    <h2>How to verify</h2>
+    <ol style="margin:0;padding-left:18px">
+      <li>Download a template from the <a href="{{ url_for('page_schema') }}">L6 Data Dictionary</a>, or use your own file.</li>
+      <li>Choose <b>Excel</b> or <b>JSON</b>, select the file and click <b>Validate &amp; Preview</b>.</li>
+      <li>Review the field mapping: <span class="badge EXACT">EXACT</span> <span class="badge ALIAS">ALIAS</span> <span class="badge UNMATCHED">UNMATCHED</span>, missing required fields and row errors.</li>
+      <li>Click <b>Submit</b>. A batch ID is returned; see <a href="{{ url_for('page_history') }}">Upload History</a>.</li>
+    </ol>
+  </div>
+  <div class="panel">
+    <h2>Templates</h2>
+    <p class="hint">Field names, types and examples come from the Etched L6 data dictionary.</p>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('api_template', name='all.xlsx', direction='iec') }}">IEC import · Excel</a>
+      <a class="btn" href="{{ url_for('api_template', name='all.json', direction='iec') }}">IEC import · JSON</a>
+      <a class="btn" href="{{ url_for('api_template', name='all.xlsx', direction='etched') }}">Etched results · Excel</a>
+      <a class="btn" href="{{ url_for('api_template', name='all.json', direction='etched') }}">Etched results · JSON</a>
+      <a class="btn" href="{{ url_for('api_schema_sql') }}">schema.sql</a>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Database</h2>
+    <div class="scroll" style="max-height:220px">
+      <table class="t">
+        <tr><th>Table</th><th style="text-align:right">Rows</th></tr>
+        {% for t, n in counts.items() %}
+        <tr><td class="mono">{{ t }}</td><td style="text-align:right">{{ n }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Recent uploads</h2>
+  {% if recent %}
+  <table class="t">
+    <tr><th>Batch</th><th>Direction</th><th>Received (UTC)</th><th>By</th><th>Format</th><th>Data types</th><th>Rows</th><th>Errors</th><th>Status</th></tr>
+    {% for b in recent %}
+    <tr>
+      <td class="mono"><a href="{{ url_for('page_batch', batch_id=b.batch_id) }}">{{ b.batch_id }}</a></td>
+      <td>{% if b.direction == 'IEC_TO_ETCHED' %}<span class="badge iec">IEC → Etched</span>{% else %}<span class="badge etched">Etched → IEC</span>{% endif %}</td>
+      <td>{{ b.received_ts }}</td><td>{{ b.submitted_by or '' }}</td><td>{{ b.file_format }}</td>
+      <td class="mono">{{ b.data_types }}</td><td>{{ b.total_rows }}</td><td>{{ b.error_rows }}</td>
+      <td><span class="badge {{ b.status }}">{{ b.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">No uploads yet.</p>{% endif %}
+</div>
+{% endblock %}

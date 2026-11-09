@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="sub">{{ subtitle }}</p>
+
+<div class="panel" id="form-panel" data-direction="{{ direction }}">
+  <div class="actions" style="margin-top:0;justify-content:space-between">
+    <div class="seg">
+      <input type="radio" name="fmt" id="fmt-excel" value="excel" checked><label for="fmt-excel">Excel</label>
+      <input type="radio" name="fmt" id="fmt-json" value="json"><label for="fmt-json">JSON</label>
+    </div>
+    <div class="actions" style="margin-top:0">
+      <span class="hint">Template:</span>
+      <a class="btn sm" id="tpl-xlsx" href="#">Excel</a>
+      <a class="btn sm" id="tpl-json" href="#">JSON</a>
+      <a class="btn sm" href="{{ url_for('page_schema') }}#{{ direction }}">Field dictionary</a>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="field">
+      <label>Data type</label>
+      <select id="data_type">
+        <option value="auto">Auto-detect (sheet name / columns)</option>
+        {% for dt in types %}<option value="{{ dt.key }}">{{ dt.label }} · {{ dt.key }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Submitted by</label>
+      <input id="submitted_by" placeholder="{{ 'e.g. BING (IEC)' if direction == 'iec' else 'e.g. Etched MTE' }}">
+    </div>
+    <div class="field">
+      <label>Source time zone</label>
+      <select id="source_tz">
+        <option value="Asia/Bangkok">Asia/Bangkok (UTC+7)</option>
+        <option value="Asia/Taipei">Asia/Taipei (UTC+8)</option>
+        <option value="Asia/Shanghai">Asia/Shanghai (UTC+8)</option>
+        <option value="America/Mexico_City">America/Mexico_City (UTC-6)</option>
+        <option value="America/Los_Angeles">America/Los_Angeles (UTC-8/-7)</option>
+        <option value="UTC">UTC</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Note</label>
+      <input id="note" placeholder="e.g. DVT build 1, first trial">
+    </div>
+  </div>
+
+  <div id="excel-box">
+    <div class="drop" id="drop">
+      <strong>Drop an Excel file here</strong> or click to choose (.xlsx / .xlsm)<br>
+      <span class="hint">Multiple sheets are supported — one data type per sheet. Sheets named README are ignored.</span>
+      <div id="file-name" class="mono" style="margin-top:8px"></div>
+    </div>
+    <input type="file" id="file-excel" accept=".xlsx,.xlsm" class="hidden">
+  </div>
+
+  <div id="json-box" class="hidden">
+    <div class="actions" style="margin-top:0;margin-bottom:8px">
+      <button class="btn sm" id="json-example">Insert example</button>
+      <button class="btn sm" id="json-file-btn">Load .json / .yaml file</button>
+      <button class="btn sm" id="json-format">Format JSON</button>
+      <button class="btn sm" id="json-clear">Clear</button>
+      <input type="file" id="file-json" accept=".json,.yaml,.yml" class="hidden">
+      <span class="hint" id="json-file-name"></span>
+    </div>
+    <textarea id="json-text" spellcheck="false" placeholder='{"data_type": "...", "records": [ {...} ]}  or  {"data": {"<data_type>": [ ... ]}}'></textarea>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="btn-validate">Validate &amp; Preview</button>
+    <button class="btn accent" id="btn-submit" disabled>Submit to Etched</button>
+    {% if direction == 'etched' %}
+    <label class="hint"><input type="checkbox" id="strict" checked> Reject the whole batch if any row has errors</label>
+    {% endif %}
+    <span class="hint" id="status"></span>
+  </div>
+  <div id="msg"></div>
+</div>
+
+<div class="panel hidden" id="preview-panel">
+  <h2>Preview</h2>
+  <div class="chips" id="chips"></div>
+  <div id="dup"></div>
+  <div class="tabs" id="sheet-tabs"></div>
+  <div id="sheet-body"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.MES = {direction: "{{ direction }}", types: {{ type_meta | tojson }}};
+</script>
+<script src="{{ url_for('static', filename='upload.js') }}?v={{ app_version }}"></script>
+{% endblock %}

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Etched Manufacturing Test{% endblock %} · Etched</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ app_version }}">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('home') }}">
+    <span class="logo">ETCHED</span>
+    <span class="brand-sub">Manufacturing Test</span>
+  </a>
+  <nav>
+    {% set p = request.path %}
+    <a href="{{ url_for('home') }}" class="{{ 'active' if p == '/' }}">Home</a>
+    <a href="{{ url_for('page_import') }}" class="{{ 'active' if p == '/import' }}">Inventec MES Import</a>
+    <a href="{{ url_for('page_etched') }}" class="{{ 'active' if p == '/etched-upload' }}">Etched Test Results Upload</a>
+    <a href="{{ url_for('page_history') }}" class="{{ 'active' if p.startswith('/history') or p.startswith('/batch') }}">Upload History</a>
+    <a href="{{ url_for('page_schema') }}" class="{{ 'active' if p == '/schema' }}">L6 Data Dictionary</a>
+    <a href="{{ url_for('page_api') }}" class="{{ 'active' if p == '/api-docs' }}">API</a>
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>
+  Etched Manufacturing Test · Inventec MES ⇄ Etched L6 integration sandbox · v{{ app_version }}
+  {% if auth_enabled %}· access key required{% else %}· open access (local test){% endif %}
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

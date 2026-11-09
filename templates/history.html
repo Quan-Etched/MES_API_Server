@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Upload History{% endblock %}
+{% block content %}
+<h1>Upload History</h1>
+<p class="sub">Every upload is one batch. The original file is kept and can be downloaded again.</p>
+<div class="actions" style="margin:0 0 14px">
+  <a class="btn sm {{ 'primary' if not direction }}" href="{{ url_for('page_history') }}">All</a>
+  <a class="btn sm {{ 'primary' if direction == 'iec' }}" href="{{ url_for('page_history', direction='iec') }}">IEC → Etched</a>
+  <a class="btn sm {{ 'primary' if direction == 'etched' }}" href="{{ url_for('page_history', direction='etched') }}">Etched → IEC</a>
+</div>
+<div class="panel">
+  {% if batches %}
+  <div class="scroll" style="max-height:none">
+  <table class="t">
+    <tr><th>Batch</th><th>Direction</th><th>Received (UTC)</th><th>Submitted by</th><th>Source TZ</th><th>Format</th><th>File</th>
+        <th>Data types</th><th>Rows</th><th>OK</th><th>Errors</th><th>Status</th><th>Client IP</th></tr>
+    {% for b in batches %}
+    <tr>
+      <td class="mono"><a href="{{ url_for('page_batch', batch_id=b.batch_id) }}">{{ b.batch_id }}</a></td>
+      <td>{% if b.direction == 'IEC_TO_ETCHED' %}<span class="badge iec">IEC → Etched</span>{% else %}<span class="badge etched">Etched → IEC</span>{% endif %}</td>
+      <td>{{ b.received_ts }}</td><td>{{ b.submitted_by or '' }}</td><td>{{ b.source_tz or '' }}</td><td>{{ b.file_format }}</td>
+      <td class="mono">{{ b.file_name or '(pasted)' }}</td><td class="mono">{{ b.data_types }}</td>
+      <td>{{ b.total_rows }}</td><td>{{ b.ok_rows }}</td><td>{{ b.error_rows }}</td>
+      <td><span class="badge {{ b.status }}">{{ b.status }}</span></td><td class="mono">{{ b.client_ip or '' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}<p class="muted">No uploads yet.</p>{% endif %}
+</div>
+{% endblock %}

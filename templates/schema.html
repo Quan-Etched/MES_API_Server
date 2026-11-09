@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}L6 Data Dictionary{% endblock %}
+{% macro type_card(dt) %}
+<div class="panel type-card" id="{{ dt.key }}">
+  <div class="actions" style="margin:0 0 6px;justify-content:space-between">
+    <h3>{{ dt.label }} · <span class="mono">{{ dt.key }}</span> <span class="badge">{{ dt.ref }}</span></h3>
+    <div class="actions" style="margin:0">
+      <a class="btn sm" href="{{ url_for('api_template', name=dt.key ~ '.xlsx') }}">Excel template</a>
+      <a class="btn sm" href="{{ url_for('api_template', name=dt.key ~ '.json') }}">JSON template</a>
+    </div>
+  </div>
+  <p class="hint" style="margin-top:0">{{ dt.desc }}
+    Etched table: <code>{{ dt.core_table }}</code>{% if dt.direction == 'IEC_TO_ETCHED' %} · IEC staging table: <code>{{ dt.iec_table }}</code>{% endif %}
+    {% if dt.require_one_of %} · at least one of <code>{{ dt.require_one_of|join('</code>, <code>')|safe }}</code> is required{% endif %}</p>
+  <table class="t">
+    <tr><th>Field</th><th>Type</th><th>Required</th><th>Allowed values</th><th>Also accepted as</th><th>Description</th><th>Example</th></tr>
+    {% for f in dt.fields %}
+    <tr>
+      <td class="mono"><b>{{ f.name }}</b></td><td class="mono">{{ f.type }}</td>
+      <td>{% if f.required %}<span class="badge req">required</span>{% endif %}</td>
+      <td class="mono">{{ f.enum|join(' / ') }}</td>
+      <td class="mono muted">{{ f.all_aliases()|join(', ') }}</td>
+      <td>{{ f.desc }}</td><td class="mono">{{ '' if f.example is none else f.example }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endmacro %}
+{% block content %}
+<h1>Etched L6 Data Dictionary</h1>
+<p class="sub">The fields Inventec uploads are matched against these names. Header matching ignores case, spaces and punctuation
+  (<code>Unit SN</code>, <code>unit-sn</code> and <code>UNIT_SN</code> all match <code>unit_sn</code>).
+  Times: <code>YYYY-MM-DD HH:MM:SS</code> in the source time zone; <code>YYYYMMDDHHMMSS</code> and ISO 8601 are also accepted.</p>
+<div class="actions" style="margin:0 0 18px">
+  <a class="btn" href="{{ url_for('api_template', name='all.xlsx', direction='iec') }}">All IEC types · Excel</a>
+  <a class="btn" href="{{ url_for('api_template', name='all.json', direction='iec') }}">All IEC types · JSON</a>
+  <a class="btn" href="{{ url_for('api_schema', direction='iec') }}">Schema · JSON</a>
+  <a class="btn" href="{{ url_for('api_schema_sql') }}">schema.sql</a>
+</div>
+
+<h2 id="iec">Inventec → Etched ({{ iec|length }} data types)</h2>
+{% for dt in iec %}{{ type_card(dt) }}{% endfor %}
+
+<h2 id="etched">Etched → Inventec ({{ etched|length }} data types)</h2>
+{% for dt in etched %}{{ type_card(dt) }}{% endfor %}
+
+<div class="panel">
+  <details><summary>SQLite schema (CREATE TABLE statements)</summary><pre>{{ schema_sql }}</pre></details>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}API{% endblock %}
+{% block content %}
+<h1>API Reference · v1</h1>
+<p class="sub">Base URL: <code>{{ base }}</code>. All responses are JSON.
+  {% if auth_enabled %}Send header <code>X-API-Key: &lt;key&gt;</code> on every request.{% else %}No API key is required on this server.{% endif %}</p>
+
+<div class="panel">
+  <h2>Endpoints</h2>
+  <table class="t">
+    <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/health</td><td>Liveness, version, whether an API key is required</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/schema?direction=iec|etched</td><td>Etched L6 data dictionary (fields, types, required, allowed values, aliases)</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/schema/&lt;data_type&gt;</td><td>One data type</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/schema.sql</td><td>SQLite CREATE TABLE statements</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/templates/&lt;data_type|all&gt;.xlsx|.json</td><td>Upload templates with example rows</td></tr>
+    <tr><td>POST</td><td class="mono">/api/v1/validate?direction=iec|etched</td><td>Dry run: field matching + row validation, nothing stored</td></tr>
+    <tr><td>POST</td><td class="mono">/api/v1/iec/upload</td><td>Inventec → Etched. Stored in <code>iec_*</code> tables (rows with errors are kept, flagged ERROR)</td></tr>
+    <tr><td>POST</td><td class="mono">/api/v1/etched/upload</td><td>Etched → Inventec. Stored in <code>l6_etched_*</code> tables</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/etched/&lt;data_type&gt;?since_id=0&amp;unit_sn=&amp;limit=500</td><td>Inventec pulls Etched results incrementally (use <code>next_since_id</code>)</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/batches?direction=iec|etched</td><td>Upload history</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/batches/&lt;batch_id&gt;</td><td>Batch metadata + field mapping</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/batches/&lt;batch_id&gt;/rows?data_type=</td><td>Stored rows of a batch</td></tr>
+    <tr><td>GET</td><td class="mono">/api/v1/batches/&lt;batch_id&gt;/file</td><td>Original uploaded file</td></tr>
+  </table>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>Upload a file (Excel / JSON / YAML)</h2>
+<pre>curl -X POST {{ base }}/api/v1/iec/upload \{% if auth_enabled %}
+  -H "X-API-Key: $KEY" \{% endif %}
+  -F "file=@L6_wip_20261101.xlsx" \
+  -F "submitted_by=BING" \
+  -F "source_tz=Asia/Bangkok" \
+  -F "data_type=auto"</pre>
+    <p class="hint">Form fields: <code>file</code>, <code>data_type</code> (auto or a key below),
+      <code>sheet_map</code> (JSON, e.g. <code>{"Sheet1":"wip","Sheet2":"skip"}</code>),
+      <code>submitted_by</code>, <code>source_tz</code>, <code>note</code>, <code>strict</code> (Etched only).</p>
+  </div>
+  <div class="panel">
+    <h2>Send JSON directly</h2>
+<pre>curl -X POST {{ base }}/api/v1/iec/upload \{% if auth_enabled %}
+  -H "X-API-Key: $KEY" \{% endif %}
+  -H "Content-Type: application/json" \
+  -d '{
+  "source_system": "INVENTEC_MES",
+  "submitted_by": "BING",
+  "source_tz": "Asia/Bangkok",
+  "data_type": "wip",
+  "records": [
+    {"unit_sn": "LV5ARP0046", "current_station": "IV-ICT-01",
+     "in_ts": "2026-11-01 10:20:00", "wip_status": "QUEUE"}
+  ]
+}'</pre>
+    <p class="hint">Several types in one call: <code>{"data": {"unit": [...], "genealogy": [...]}}</code>.
+      YAML: same structure with <code>Content-Type: application/x-yaml</code>.</p>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Response</h2>
+<pre>{
+  "ok": true,
+  "batch_id": "IEC-20261101-200512-3F2A",
+  "status": "RECEIVED",                 // RECEIVED | RECEIVED_WITH_ERRORS | COMMITTED | PARTIAL | REJECTED
+  "inserted_rows": 1,
+  "summary": {"total_rows": 1, "ok_rows": 1, "error_rows": 0, "unknown_columns": 0, "missing_required": 0, "data_types": ["wip"]},
+  "sheets": [{
+    "sheet": "wip", "data_type": "wip", "missing_required": [], "unknown_columns": [],
+    "mapping": [{"source": "unit_sn", "target": "unit_sn", "match": "EXACT", "suggestion": null}],
+    "errors": [ {"row_no": 3, "field": "in_ts", "message": "not a date/time: 'abc'"} ]
+  }]
+}</pre>
+  <p class="hint">HTTP 200 = stored, 400 = unreadable payload, 401 = bad key, 413 = too large, 422 = Etched batch rejected (strict).</p>
+</div>
+
+<div class="panel">
+  <h2>Data types</h2>
+  <p><b>Inventec → Etched:</b> {% for dt in iec %}<a class="mono" href="{{ url_for('page_schema') }}#{{ dt.key }}">{{ dt.key }}</a>{{ ', ' if not loop.last }}{% endfor %}</p>
+  <p><b>Etched → Inventec:</b> {% for dt in etched %}<a class="mono" href="{{ url_for('page_schema') }}#{{ dt.key }}">{{ dt.key }}</a>{{ ', ' if not loop.last }}{% endfor %}</p>
+</div>
+{% endblock %}

@@ -1,0 +1,5 @@
+data/
+__pycache__/
+.venv/
+.env
+readme_Dev_CN.md

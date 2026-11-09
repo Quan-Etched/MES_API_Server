@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Batch {{ b.batch_id }}{% endblock %}
+{% block content %}
+<h1 class="mono">{{ b.batch_id }}</h1>
+<p class="sub">
+  {% if b.direction == 'IEC_TO_ETCHED' %}<span class="badge iec">IEC → Etched</span>{% else %}<span class="badge etched">Etched → IEC</span>{% endif %}
+  <span class="badge {{ b.status }}">{{ b.status }}</span>
+</p>
+<div class="grid2">
+  <div class="panel">
+    <h2>Batch</h2>
+    <div class="kv">
+      <div>Received (UTC)</div><div>{{ b.received_ts }}</div>
+      <div>Source system</div><div>{{ b.source_system }}</div>
+      <div>Submitted by</div><div>{{ b.submitted_by or '' }}</div>
+      <div>Source time zone</div><div>{{ b.source_tz or '' }}</div>
+      <div>Format</div><div>{{ b.file_format }}</div>
+      <div>File</div><div class="mono">{{ b.file_name or '(pasted / API body)' }}
+        {% if b.stored_path %} · <a href="{{ url_for('api_batch_file', batch_id=b.batch_id) }}">download original</a>{% endif %}</div>
+      <div>SHA-256</div><div class="mono" style="word-break:break-all">{{ b.file_sha256 }}</div>
+      <div>Rows</div><div>{{ b.total_rows }} total · {{ b.ok_rows }} OK · {{ b.error_rows }} with errors</div>
+      <div>Note</div><div>{{ b.note or '' }}</div>
+      <div>Client IP</div><div class="mono">{{ b.client_ip or '' }}</div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Field mapping</h2>
+    <div class="scroll" style="max-height:330px">
+    <table class="t">
+      <tr><th>Sheet</th><th>Data type</th><th>Source column</th><th>Etched field</th><th>Match</th><th>Suggestion</th></tr>
+      {% for m in mapping %}
+      <tr><td>{{ m.sheet_name }}</td><td class="mono">{{ m.data_type or '' }}</td><td class="mono">{{ m.source_column }}</td>
+          <td class="mono">{{ m.target_field or '—' }}</td><td><span class="badge {{ m.match_type }}">{{ m.match_type }}</span></td>
+          <td class="mono muted">{{ m.suggestion or '' }}</td></tr>
+      {% endfor %}
+    </table>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Stored rows {% if table %}<span class="mono muted">· {{ table }}</span>{% endif %}</h2>
+  {% if dtypes|length > 1 %}
+  <div class="tabs">
+    {% for t in dtypes %}<a class="tab {{ 'active' if t == dtype }}" href="{{ url_for('page_batch', batch_id=b.batch_id, data_type=t) }}">{{ t }}</a>{% endfor %}
+  </div>
+  {% endif %}
+  {% if rows %}
+  <p class="hint">Showing {{ rows|length }} of {{ total }} rows. JSON: <a class="mono" href="{{ url_for('api_batch_rows', batch_id=b.batch_id, data_type=dtype) }}">/api/v1/batches/{{ b.batch_id }}/rows?data_type={{ dtype }}</a></p>
+  <div class="scroll">
+    <table class="t">
+      <tr>{% for k in rows[0].keys() %}<th class="mono">{{ k }}</th>{% endfor %}</tr>
+      {% for r in rows %}
+      <tr class="{{ 'row-err' if r.row_status == 'ERROR' }}">
+        {% for k, v in r.items() %}
+          {% if k == 'row_status' %}<td><span class="badge {{ v }}">{{ v }}</span></td>
+          {% else %}<td class="{{ 'mono' if k in ('row_errors','extra_json') }}">{{ '' if v is none else v }}</td>{% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}<p class="muted">No rows stored{% if b.status == 'REJECTED' %} (batch was rejected){% endif %}.</p>{% endif %}
+</div>
+{% endblock %}

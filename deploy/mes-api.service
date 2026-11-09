@@ -1,0 +1,14 @@
+[Unit]
+Description=Etched L6 MES API Server (Inventec integration sandbox)
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/mes_api_server
+EnvironmentFile=/opt/mes_api_server/.env
+ExecStart=/opt/mes_api_server/.venv/bin/gunicorn -w 2 -b 127.0.0.1:5050 --timeout 120 --access-logfile - "app:create_app()"
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
